@@ -9,6 +9,7 @@ import re
 import fileinput
 import sys
 import ntpath
+import threading
 #import string
 #clientname=""
 
@@ -315,24 +316,39 @@ class Client():
 		if not os.path.isdir(location):		#first,it checks if the folder is present at the given path or not
 			os.makedirs(location)			#if no, then it creates one at the given path
 
+
+
+class ClientThread(threading.Thread):
+	def __init__(self):
+		self.s= socket.socket()		#create a socket
+		self.host=socket.gethostname()	
+		self.counter=0
+		threading.Thread.__init__(self)
+		
+	def run(self):
+		while self.counter==0:
+			#host=str(raw_input("please enter the ip of the server"))
+			host='10.100.96.121'
+			port=int(raw_input("please enter the port number of the server"))
+			try:
+				self.s.connect((host, port))
+				self.counter=1
+			except:
+				print "error while connecting "
+		data = self.s.recv(1024)		#This recceives from client "I have given you a new thread"
+		self.s.send("Hi i am client")	#this will be simply printed on server terminal
+		client=Client()	#make an object of the client class
+		
+		client.run(self.s)
+
+
+
 if __name__=='__main__':		#program starts executing from here
 	print "Hi I am client"
-	s= socket.socket()		#create a socket
-	host=socket.gethostname()	
-	counter=0
-	while counter==0:
-		host=str(raw_input("please enter the ip of the server"))
-		port=int(raw_input("please enter the port number of the server"))
-		try:
-			s.connect((host, port))
-			counter=1
-		except:
-			print "error while connecting "	
-	data = s.recv(1024)		#This recceives from client "I have given you a new thread"
-	s.send("Hi i am client")	#this will be simply printed on server terminal
-	client=Client()	#make an object of the client class
+	#thread.start_new_thread (ClientThread)
 	clientname=""	#initialise the clientname
-	client.run(s)
-
+	client_thread=ClientThread()
+	client_thread.start()
+	print "the thread has been started vooh"
 
 
