@@ -12,6 +12,7 @@ import ntpath
 import threading
 #import string
 #clientname=""
+host="0.0.0.0"
 
 class Client():
 	clientname=""
@@ -327,8 +328,9 @@ class ClientThread(threading.Thread):
 		
 	def run(self):
 		while self.counter==0:
-			#host=str(raw_input("please enter the ip of the server"))
-			host='10.100.96.121'
+			print "in run of client thread \n\n"
+			host=raw_input("please enter the ip of the server")
+			#host='10.100.96.129'
 			port=int(raw_input("please enter the port number of the server"))
 			try:
 				self.s.connect((host, port))
@@ -342,13 +344,47 @@ class ClientThread(threading.Thread):
 		client.run(self.s)
 
 
+class BroadcastThread(threading.Thread):
+	def __init__(self,host,port):
+		#I have to act as a server here and let server connect to me.
+		#Now for the server we need host and name. And we also have to give these name to the server. 
+		threading.Thread.__init__(self)
+		self.host=host
+		self.port=port
+		#self.broadcast_sock= socket.socket()
+		#self.broadcast_sock.bind((self.host,self.port))
+
+	def run(self):
+		self.broadcast_sock= socket.socket()
+		self.broadcast_sock.bind((self.host,self.port))
+		self.broadcast_sock.listen(5)
+		print "its from run in BroadcastThread"
+		while True:
+			#time.sleep(10)
+			#print "hello world"
+			broadcast_conn,broadcast_addr=self.broadcast_sock.accept()
+
+			#call some class 
+
 
 if __name__=='__main__':		#program starts executing from here
 	print "Hi I am client"
 	#thread.start_new_thread (ClientThread)
 	clientname=""	#initialise the clientname
+	temp_sock=socket.socket()
+	temp_sock.connect(("8.8.8.8",80))
+	print "the ip of the server is \n" + temp_sock.getsockname()[0]
+	client_ip=temp_sock.getsockname()[0]
+	temp_sock.close()
+	client_port=raw_input("please enter the port for the client server for it to listen to broadcast\n")
+	client_port=int(client_port)#a possible place for error
 	client_thread=ClientThread()
 	client_thread.start()
-	print "the thread has been started vooh"
+	
+	print "the thread has been started and  now its time for client to become server \n"
+	broadcast=BroadcastThread(client_ip,client_port)
+	broadcast.start()
+
+
 
 

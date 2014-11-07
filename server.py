@@ -546,7 +546,7 @@ if __name__=='__main__':
 	temp_sock.connect(("8.8.8.8",80))
 	print "the ip of the server is " + temp_sock.getsockname()[0]
 	temp_sock.close()
-	print "the port of the server is " + str(port)
+	print "the port of the server is " + str(port)	
 	s=Server()#calls the server class which binds the socket . Simply  a constructor 
 	s.run()#calls the run method 
 	print "hello people I am the server talking"
