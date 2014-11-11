@@ -13,7 +13,13 @@ import threading
 #import string
 #clientname=""
 host="0.0.0.0"
+client_port=0
+client_ip=""
+t=0
 
+def quit_exit():
+	print "in system exit"
+	t=1
 class Client():
 	clientname=""
 #the important functions of the client are encapsulated in the client class
@@ -52,6 +58,11 @@ class Client():
 				self.listContent(s)#this function lists all the repo and its content for that particular user
 			elif data=="Download_Open_Repo":
 				self.Download_Open_Repo(s)	#to fork a particular repo into the current working directory of the client code
+			elif data=="broadcast":
+				self.broadcast(s)
+			elif data=="broadcast_message":
+				print "in broadcast_message"
+				self.broadcast_message(s)		
 			else:
 				s.send(data)
 				print "wrong input\n"			
@@ -60,6 +71,8 @@ class Client():
 		s.send("quit")	#client can exit by typing 'quit'
 		s.close()
 		sys.exit()
+		#quit_exit()
+		
 
 	def listContent(self,s):
 		s.send("listContent")	#initiates listContent 
@@ -134,6 +147,22 @@ class Client():
 			print "user already exists .. please redo the procedure with a new username\n"
 		else:
 			print "some error occured\n"
+
+	
+	def broadcast(self,s):
+		s.send("broadcast_path")
+		print s.recv(1024)
+		s.send(client_ip)
+		print s.recv(1024)
+		s.send(str(client_port))
+		print s.recv(1024)
+
+	
+	def broadcast_message(self,s):
+		s.send("broadcast_message")
+		print s.recv(1024)
+		message=raw_input()
+		s.send(message)
 
 	def commit(self,s):	
 		print Client.clientname
@@ -363,8 +392,14 @@ class BroadcastThread(threading.Thread):
 			#time.sleep(10)
 			#print "hello world"
 			broadcast_conn,broadcast_addr=self.broadcast_sock.accept()
-
+			#now I need a function which will listen to the server and print whatever shit it has to read 
+			self.broadcast_message_reader(broadcast_conn)
 			#call some class 
+
+	def broadcast_message_reader(self,broadcast_socket):
+		while True:
+			data = broadcast_socket.recv(1024)
+			print data
 
 
 if __name__=='__main__':		#program starts executing from here
@@ -376,14 +411,19 @@ if __name__=='__main__':		#program starts executing from here
 	print "the ip of the server is \n" + temp_sock.getsockname()[0]
 	client_ip=temp_sock.getsockname()[0]
 	temp_sock.close()
-	client_port=raw_input("please enter the port for the client server for it to listen to broadcast\n")
+	client_port=int(raw_input("please enter the port for the client server for it to listen to broadcast\n"))
 	client_port=int(client_port)#a possible place for error
 	client_thread=ClientThread()
+	#client_thread.daemon=True
 	client_thread.start()
+	
 	
 	print "the thread has been started and  now its time for client to become server \n"
 	broadcast=BroadcastThread(client_ip,client_port)
-	broadcast.start()
+	broadcast.daemon=True
+	broadcast.start()	
+
+
 
 
 

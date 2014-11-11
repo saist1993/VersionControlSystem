@@ -9,9 +9,9 @@ import re
 import fileinput
 import sys
 
-
+BROADCAST_SOCKET=[]#it is used to save the 
 host="0.0.0.0"
-port = 12367
+port = 12372
 
 class ClientThread(threading.Thread):
 	def __init__(self,(conn,addr),counter,sock):#this is client thread constructor. This initializes few variables and thread itself 
@@ -22,6 +22,7 @@ class ClientThread(threading.Thread):
 		threading.Thread.__init__(self)
 
 	def run(self):
+		
 		self.conn.send("I have given you a new thread")
 		while True:
 			data =  self.conn.recv(1024)#this is where server recv. data from the client and responds appropriatley 
@@ -52,7 +53,14 @@ class ClientThread(threading.Thread):
 					self.listContent()	
 				elif data=="Download_Open_Repo":#for forkin
 					print "in Download_Open_Repo"
-					self.Download_Open_Repo()	
+					self.Download_Open_Repo()
+				elif data=="broadcast_path":
+					print "in broadcast"
+					self.broadcast()
+				elif data=="broadcast_message":
+					print "in broadcast_message"
+					self.broadcast_message()		
+
 	def listContent(self):
 #IT FIRST builds the exact location or path 
 #Depending on the input given,this method gives the client the list of folders present in the main repo or the list of files and folders in
@@ -158,6 +166,33 @@ class ClientThread(threading.Thread):
 	def quit(self):#a function which which prints whenever the socket is closed 
 		print "client"+str(self.counter)+" quits"
 		#self.conn.close()	
+
+	def broadcast(self):
+		self.conn.send("please send the host number")
+		host=self.conn.recv(1024)
+		print host
+		self.conn.send("host recv")
+		port=self.conn.recv(1024)
+		print port
+		self.conn.send("port recv")
+		broadcast_socket=socket.socket()
+		broadcast_socket.connect((host,int(port)))
+		print "Its connected and broadcast is working "
+		BROADCAST_SOCKET.append(broadcast_socket)
+
+
+	def broadcast_message(self):
+		self.conn.send("please enter the message")
+		data=self.conn.recv(1024)
+		for sockets in BROADCAST_SOCKET:
+			try:
+				sockets.send(data)
+			except:
+				print "broken pipe"
+				BROADCAST_SOCKET.remove(sockets)	
+
+
+
 
 	def UpdateOpenRepo(self):#this function updates the OpenRepo file whenever a open source repo is formed 
 		print "in the function "
@@ -523,9 +558,13 @@ class Server():
 		print "you can enter here"
 		while True:
 			Server.counter=Server.counter+1
+			print "yo"
 			client=ClientThread(self.sock.accept(),Server.counter,self.sock)#it calls client class constructor which intiilizes a #new thread
+			print "yo1"
 			client.daemon=True#this is set true if the thread is running in infinite loop
+			print "yo2"
 			client.start()#This will call the run function in class ClientThread
+			print "yo3"
 
 	def stop(self):
 		self.sock.close()
@@ -546,7 +585,7 @@ if __name__=='__main__':
 	temp_sock.connect(("8.8.8.8",80))
 	print "the ip of the server is " + temp_sock.getsockname()[0]
 	temp_sock.close()
-	print "the port of the server is " + str(port)	
+	print "the port of the server is " + str(port)
 	s=Server()#calls the server class which binds the socket . Simply  a constructor 
 	s.run()#calls the run method 
 	print "hello people I am the server talking"
