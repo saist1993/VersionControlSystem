@@ -8,10 +8,16 @@ import ntpath
 import re
 import fileinput
 import sys
+#file:///home/gaurav/cnsproject/termcolor-1.1.0/setup.py
+#file:///home/gaurav/cnsproject/termcolor-1.1.0/termcolor.py
+#file:///home/gaurav/cnsproject/termcolor-1.1.0/termcolor.pyc
+#import sys
+from termcolor import colored, cprint
+
 
 BROADCAST_SOCKET=[]#it is used to save the 
 host="0.0.0.0"
-port = 12372
+port = 12374
 
 class ClientThread(threading.Thread):
 	def __init__(self,(conn,addr),counter,sock):#this is client thread constructor. This initializes few variables and thread itself 
@@ -59,7 +65,11 @@ class ClientThread(threading.Thread):
 					self.broadcast()
 				elif data=="broadcast_message":
 					print "in broadcast_message"
-					self.broadcast_message()		
+					self.broadcast_message()
+				elif data=="sharedResource":
+					print "sharedResource"
+					self.sharedResource()
+
 
 	def listContent(self):
 #IT FIRST builds the exact location or path 
@@ -167,6 +177,19 @@ class ClientThread(threading.Thread):
 		print "client"+str(self.counter)+" quits"
 		#self.conn.close()	
 
+	def sharedResource(self):
+		util=utility()
+		#self.conn.send("ack - the sharedResource ack")
+		#fileName=self.conn.recv(1024)#the filename
+		#self.conn.send("file name recv")#ack for file name
+		#serverpath=filename+"/sharedResource"
+		#fileData=self.recv_one_message
+		#util=utility()
+		#fileData=util.recv_one_message(self.conn)
+		util.recvfile(self.conn)
+
+
+
 	def broadcast(self):
 		self.conn.send("please send the host number")
 		host=self.conn.recv(1024)
@@ -182,14 +205,23 @@ class ClientThread(threading.Thread):
 
 
 	def broadcast_message(self):
-		self.conn.send("please enter the message")
+		self.conn.send("redy to start broadcast")
 		data=self.conn.recv(1024)
-		for sockets in BROADCAST_SOCKET:
-			try:
-				sockets.send(data)
-			except:
-				print "broken pipe"
-				BROADCAST_SOCKET.remove(sockets)	
+		if data=="message":
+			#do something
+			self.conn.send("correct")#an ack for sending proper option
+			#self.conn.send("please enter your message")
+			message=self.conn.recv(1024)
+			print message
+			for sockets in BROADCAST_SOCKET:
+				try:
+					sockets.send(message)
+				except:
+					print "broken pipe"
+					BROADCAST_SOCKET.remove(sockets)	
+		else:
+			#do something
+			self.conn.send("incorrect")			
 
 
 
@@ -301,6 +333,7 @@ class utility():
 			os.mkdir(location)
 			log_Location=location+'/'+'log.txt'
 			fo_log=open(log_Location,"a+")	#creates a file 'log.txt' in every folder it creates 
+			fo_log.close()
 	
 #this is working
 	def send_one_message(self,c,data):	#sends the length of the message and then the data
@@ -558,13 +591,13 @@ class Server():
 		print "you can enter here"
 		while True:
 			Server.counter=Server.counter+1
-			print "yo"
+			#print "yo"
 			client=ClientThread(self.sock.accept(),Server.counter,self.sock)#it calls client class constructor which intiilizes a #new thread
-			print "yo1"
+			#print "yo1"
 			client.daemon=True#this is set true if the thread is running in infinite loop
-			print "yo2"
+			#print "yo2"
 			client.start()#This will call the run function in class ClientThread
-			print "yo3"
+			#print "yo3"
 
 	def stop(self):
 		self.sock.close()
@@ -572,7 +605,8 @@ class Server():
 
 #the code starts from here after importing libraries 
 if __name__=='__main__':
-	print "file transfer server is about to start\n"
+	text=colored("file transfer server is about to start\n",'red')
+	print text
 	print "A new or existing lookUP table"
 	fo=open("LoginLookUp.txt","a+")#a text file which stores information for login like username password 
 #whenever server runs its either created and if it exists then it just opens and close 
@@ -581,6 +615,15 @@ if __name__=='__main__':
 	fo.close()
 	fo=open("OpenRepo.txt","a+")#a text file which stores all the open repo. used at the time of forking 
 	fo.close()
+
+	#making a /sharedResource folder here and make a log.txt file 
+	location=os.getcwd()+"/sharedResource"
+	if not os.path.isdir(location):
+		os.makedirs(location) 
+		log_Location=location+'/'+'log.txt'
+		fo_log=open(log_Location,"a+")	#creates a file 'log.txt' in every folder it creates 
+		fo_log.close()
+
 	temp_sock=socket.socket()
 	temp_sock.connect(("8.8.8.8",80))
 	print "the ip of the server is " + temp_sock.getsockname()[0]

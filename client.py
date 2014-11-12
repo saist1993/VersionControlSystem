@@ -16,6 +16,7 @@ host="0.0.0.0"
 client_port=0
 client_ip=""
 t=0
+from termcolor import colored, cprint
 
 def quit_exit():
 	print "in system exit"
@@ -26,8 +27,10 @@ class Client():
 	def run(self,s):#this takes user inputs and based on user input calls the required function .
 	#the code is based on the fact that every communication is initated by the client itself and server just responds
 	#there are two infinite loop . the one till user logs in and the other after user has logged in 
+
+		self.broadcast(s)
 		while not Client.clientname:
-			data=raw_input("please enter 'login' to login , 'newLogin' to signup or 'quit' to quit")
+			data=raw_input("please enter 'login' to login , 'newLogin' to signup or 'quit' to quit or broadcast_message" )
 			if data=="quit":
 				self.quit(s)
 
@@ -58,11 +61,14 @@ class Client():
 				self.listContent(s)#this function lists all the repo and its content for that particular user
 			elif data=="Download_Open_Repo":
 				self.Download_Open_Repo(s)	#to fork a particular repo into the current working directory of the client code
-			elif data=="broadcast":
-				self.broadcast(s)
+			#elif data=="broadcast":
+				#self.broadcast(s)
 			elif data=="broadcast_message":
 				print "in broadcast_message"
-				self.broadcast_message(s)		
+				self.broadcast_message(s)	
+			elif data=="sharedResource":
+				print "in shared Resource"
+				self.sharedResource(s)		
 			else:
 				s.send(data)
 				print "wrong input\n"			
@@ -161,8 +167,15 @@ class Client():
 	def broadcast_message(self,s):
 		s.send("broadcast_message")
 		print s.recv(1024)
-		message=raw_input()
-		s.send(message)
+		#message=raw_input()
+		s.send("message")
+		ack=s.recv(1024)
+		if ack=="correct":
+			print "correct"
+			message=raw_input("please enter the message")
+			s.send(message)
+		elif ack=="incorrect":
+			print "incorrect option selection"	
 
 	def commit(self,s):	
 		print Client.clientname
@@ -232,13 +245,22 @@ class Client():
 				fo.write(content)
 				fo.close()
 				self.send_one_message(s,"done with writing")
+	def sharedResource(self,s):
+		s.send("sharedResource")
+		client_path=raw_input("please enter client_path including file name: ")
+		head,tail=ntpath.split(client_path)
+		#tail has the file name
+		server_path_final="sharedResource/"+tail
+		self.sendfile(s,client_path,server_path_final)			
+
+
 
 	def senderFile(self,s):	#this method takes in the path of the file on the client system,which is to be pushed and the 
 		s.send("sendFile")	#path of the repo where it wants the file to be sent.These are then sent to 'sendfile' method
 		client_path=raw_input("please enter client_path including file name: ")
 		server_path=raw_input("please enter server path of the file excluding user name and / : ")
 		server_path_final=Client.clientname+"/"+server_path#building the path for the file
-		self.sendfile(s,client_path,server_path_final)
+		self.sendFile(s,client_path,server_path_final)
 
 	def getFile(self,s):	#this method is called when the user wants to get a file from one's repo
 		s.send('getFile')
@@ -367,7 +389,7 @@ class ClientThread(threading.Thread):
 			except:
 				print "error while connecting "
 		data = self.s.recv(1024)		#This recceives from client "I have given you a new thread"
-		self.s.send("Hi i am client")	#this will be simply printed on server terminal
+		#self.s.send("Hi i am client")	#this will be simply printed on server terminal
 		client=Client()	#make an object of the client class
 		
 		client.run(self.s)
@@ -398,8 +420,11 @@ class BroadcastThread(threading.Thread):
 
 	def broadcast_message_reader(self,broadcast_socket):
 		while True:
-			data = broadcast_socket.recv(1024)
-			print data
+			data ="Its from broadcast :- "+broadcast_socket.recv(1024)+'\n'
+
+			text=colored(data,"red",attrs=['blink'])
+
+			print text
 
 
 if __name__=='__main__':		#program starts executing from here
@@ -411,18 +436,22 @@ if __name__=='__main__':		#program starts executing from here
 	print "the ip of the server is \n" + temp_sock.getsockname()[0]
 	client_ip=temp_sock.getsockname()[0]
 	temp_sock.close()
+	location=os.getcwd()+"/broadcast"
+	if not os.path.isdir(location):
+		os.makedirs(location)	
+
 	client_port=int(raw_input("please enter the port for the client server for it to listen to broadcast\n"))
 	client_port=int(client_port)#a possible place for error
 	client_thread=ClientThread()
 	#client_thread.daemon=True
-	client_thread.start()
+	
 	
 	
 	print "the thread has been started and  now its time for client to become server \n"
 	broadcast=BroadcastThread(client_ip,client_port)
 	broadcast.daemon=True
 	broadcast.start()	
-
+	client_thread.start()
 
 
 
